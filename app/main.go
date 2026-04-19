@@ -41,18 +41,20 @@ func run() (err error) {
 
 	defer closeListener(c, &err, "close connection")
 
-	buf := make([]byte, 128)
+	buf := make([]byte, 1024)
 
-	_, err = c.Read(buf)
-	if err != nil {
-		return errors.Wrap(err, "read command")
-	}
+	for {
+		_, err := c.Read(buf)
+		if err != nil {
+			return errors.Wrap(err, "read command")
+		}
 
-	log.Printf("read command:\n %s", buf)
+		log.Printf("read command:\n %s", buf)
 
-	_, err = c.Write([]byte("+PONG\r\n"))
-	if err != nil {
-		return errors.Wrap(err, "write response")
+		_, err = c.Write([]byte("+PONG\r\n"))
+		if err != nil {
+			return errors.Wrap(err, "write response")
+		}
 	}
 
 	return nil
@@ -63,4 +65,8 @@ func closeListener(c io.Closer, errp *error, msg string) {
 	if *errp == nil {
 		*errp = errors.Wrap(err, "%v", msg)
 	}
+}
+
+func readCommand(err *error, buf []byte) {
+
 }
