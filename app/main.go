@@ -1,27 +1,66 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"github.com/codecrafters-io/redis-starter-go/app/utils/errors"
+	"io"
+	"log"
 	"net"
 	"os"
 )
 
+var (
+	listen = flag.String("listen", ":6379", "address to listen to")
+)
+
 func main() {
-	fmt.Println("Logs from your program will appear here!")
+	flag.Parse()
 
-	l, err := net.Listen("tcp", "0.0.0.0:6379")
+	err := run()
 	if err != nil {
-		fmt.Println("Failed to bind to port 6379")
+		fmt.Fprintf(os.Stderr, "error, %v\n", err)
 		os.Exit(1)
 	}
-	defer l.Close()
+}
 
-	conn, err := l.Accept()
+func run() (err error) {
+	l, err := net.Listen("tcp", *listen)
 	if err != nil {
-		fmt.Println("Error accepting connection:", err)
-		os.Exit(1)
+		return errors.Wrap(err, *listen)
 	}
-	defer conn.Close()
 
-	conn.Write([]byte("+PONG\r\n"))
+	defer closeListener(l, &err, "close listener")
+
+	log.Printf("listening %v", l.Addr())
+
+	c, err := l.Accept()
+	if err != nil {
+		return errors.Wrap(err, "accept")
+	}
+
+	defer closeListener(c, &err, "close connection")
+
+	buf := make([]byte, 128)
+
+	_, err = c.Read(buf)
+	if err != nil {
+		return errors.Wrap(err, "read command")
+	}
+
+	log.Printf("read command:\n %s", buf)
+
+	_, err = c.Write([]byte("+PONG\r\n"))
+	if err != nil {
+		return errors.Wrap(err, "write response")
+	}
+
+	return nil
+}
+
+func closeListener(c io.Closer, errp *error, msg string) {
+	err := c.Close()
+	if *errp == nil {
+		*errp = errors.Wrap(err, "%v", msg)
+	}
 }
