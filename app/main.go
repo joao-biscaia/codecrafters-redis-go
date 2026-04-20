@@ -29,35 +29,17 @@ func run() (err error) {
 	if err != nil {
 		return errors.Wrap(err, *listen)
 	}
-
 	defer closeListener(l, &err, "close listener")
-
 	log.Printf("listening %v", l.Addr())
 
-	c, err := l.Accept()
-	if err != nil {
-		return errors.Wrap(err, "accept")
-	}
-
-	defer closeListener(c, &err, "close connection")
-
-	buf := make([]byte, 1024)
-
 	for {
-		_, err := c.Read(buf)
+		c, err := l.Accept()
 		if err != nil {
-			return errors.Wrap(err, "read command")
+			return errors.Wrap(err, "accept")
 		}
-
-		log.Printf("read command:\n %s", buf)
-
-		_, err = c.Write([]byte("+PONG\r\n"))
-		if err != nil {
-			return errors.Wrap(err, "write response")
-		}
+		go handleConn(c)
 	}
 
-	return nil
 }
 
 func closeListener(c io.Closer, errp *error, msg string) {
@@ -67,6 +49,23 @@ func closeListener(c io.Closer, errp *error, msg string) {
 	}
 }
 
-func readCommand(err *error, buf []byte) {
+func handleConn(c net.Conn) {
+	defer closeListener(c, nil, "close connection")
 
+	buf := make([]byte, 1024)
+	for {
+		_, err := c.Read(buf)
+		if err != nil {
+			log.Printf("read: %v", err)
+			return
+		}
+
+		log.Printf("read command:\n %s", buf)
+
+		_, err = c.Write([]byte("+PONG\r\n"))
+		if err != nil {
+			log.Printf("write: %v", err)
+			return
+		}
+	}
 }
