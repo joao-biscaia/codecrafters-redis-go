@@ -8,3 +8,8 @@ const (
 	BulkString     byte = '$'
 	NullBulkString byte = 'n'
 )
+
+var (
+	Seconds      string = "EX"
+	Milliseconds string = "PX"
+)

@@ -3,6 +3,7 @@ package executeCommand
 import (
 	"errors"
 	"log"
+	"strconv"
 	"strings"
 
 	constants "github.com/codecrafters-io/redis-starter-go/app/utils/consts"
@@ -52,11 +53,20 @@ func (e *ExecuteCommand) runPing(args []string) (string, byte, error) {
 }
 
 func (e *ExecuteCommand) runSet(args []string) (string, byte, error) {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return "", ' ', errors.New("invalid SET command")
 	}
 	key := args[0]
 	value := args[1]
+	if len(args) > 2 {
+		durationMeasure := args[2]
+		duration, err := strconv.Atoi(args[3])
+		if err != nil {
+			return "", ' ', errors.New("invalid SET expiry")
+		}
+		storage.StoreWithExpiry(key, value, durationMeasure, duration)
+		return "OK", constants.SimpleString, nil
+	}
 
 	storage.Store(key, value)
 	return "OK", constants.SimpleString, nil
