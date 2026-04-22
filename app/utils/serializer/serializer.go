@@ -4,14 +4,8 @@ import (
 	"log"
 	"strconv"
 	"strings"
-)
 
-const (
-	SimpleString byte = '+'
-	Error        byte = '-'
-	Integer      byte = ':'
-	Array        byte = '*'
-	BulkString   byte = '$'
+	constants "github.com/codecrafters-io/redis-starter-go/app/utils/consts"
 )
 
 type Serializer struct {
@@ -23,8 +17,9 @@ type encodeFunctions map[byte]func(nakedString string) ([]byte, error)
 
 func (s *Serializer) Encode() []byte {
 	encodeMap := encodeFunctions{
-		SimpleString: encodeSimpleString,
-		BulkString:   encodeBulkString,
+		constants.SimpleString:   encodeSimpleString,
+		constants.BulkString:     encodeBulkString,
+		constants.NullBulkString: encodeNullBulkString,
 	}
 
 	encodeFunc, ok := encodeMap[s.OutType]
@@ -40,9 +35,19 @@ func (s *Serializer) Encode() []byte {
 	return nil
 }
 
+func encodeNullBulkString(nakedString string) ([]byte, error) {
+	var builder strings.Builder
+	builder.WriteByte('$')
+	builder.WriteByte('-')
+	builder.WriteByte('1')
+	builder.WriteByte('\r')
+	builder.WriteByte('\n')
+	return []byte(builder.String()), nil
+}
+
 func encodeSimpleString(nakedString string) ([]byte, error) {
 	var builder strings.Builder
-	builder.WriteByte(SimpleString)
+	builder.WriteByte(constants.SimpleString)
 	builder.Write([]byte(nakedString))
 	builder.WriteByte('\r')
 	builder.WriteByte('\n')
@@ -52,7 +57,7 @@ func encodeSimpleString(nakedString string) ([]byte, error) {
 func encodeBulkString(nakedString string) ([]byte, error) {
 	outSize := len(nakedString)
 	var builder strings.Builder
-	builder.WriteByte(BulkString)
+	builder.WriteByte(constants.BulkString)
 	b := []byte(strconv.Itoa(outSize))
 	for i := range len(b) {
 		builder.WriteByte(b[i])
