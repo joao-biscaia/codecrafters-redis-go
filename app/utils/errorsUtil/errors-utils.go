@@ -1,6 +1,7 @@
-package errors
+package errorsUtil
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -20,6 +21,10 @@ func Wrap(err error, format string, args ...any) error {
 		err: err,
 		msg: fmt.Sprintf(format, args...),
 	}
+}
+
+func New(format string, args ...any) error {
+	return errors.New(fmt.Sprintf(format, args...))
 }
 
 func (w wrap) Error() string {
