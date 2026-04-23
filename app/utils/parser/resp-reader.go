@@ -52,7 +52,7 @@ func ParseCommand(input []byte) (parsedCommand []string, e error) {
 	for i := range arraySize {
 		bs, _ := reader.ReadByte()
 		if bs != BulkString {
-			log.Printf("arg %b isn't bulk string; %d", bs, len(input))
+			log.Printf("arg %v isn't bulk string; %d", input, len(input))
 			return nil, errorsUtil.New("arg %b isn't bulk string; %v", bs, commandArray)
 		}
 		byteSize, _ := reader.ReadByte()

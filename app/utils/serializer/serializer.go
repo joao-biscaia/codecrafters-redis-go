@@ -20,6 +20,7 @@ func (s *Serializer) Encode() []byte {
 		constants.SimpleString:   encodeSimpleString,
 		constants.BulkString:     encodeBulkString,
 		constants.NullBulkString: encodeNullBulkString,
+		constants.Integer:        encodeInteger,
 	}
 
 	encodeFunc, ok := encodeMap[s.OutType]
@@ -33,6 +34,17 @@ func (s *Serializer) Encode() []byte {
 	}
 	log.Printf("%v: not valid encode type", s.OutType)
 	return nil
+}
+
+func encodeInteger(nakedString string) ([]byte, error) {
+	var builder strings.Builder
+	builder.WriteByte(constants.Integer)
+	for _, v := range nakedString {
+		builder.WriteByte(byte(v))
+	}
+	builder.WriteByte('\r')
+	builder.WriteByte('\n')
+	return []byte(builder.String()), nil
 }
 
 func encodeNullBulkString(nakedString string) ([]byte, error) {

@@ -8,13 +8,19 @@ import (
 )
 
 var data sync.Map
+var locks sync.Map
 
 type entry struct {
-	value     string
+	value     any
 	expiresAt time.Time
 }
 
-func Store(key string, value string) {
+func lockForKey(key string) *sync.Mutex {
+	mu, _ := locks.LoadOrStore(key, &sync.Mutex{})
+	return mu.(*sync.Mutex)
+}
+
+func Store(key string, value any) {
 	data.Store(key, entry{value: value})
 }
 
@@ -36,5 +42,22 @@ func Get(key string) (string, bool) {
 		data.Delete(key)
 		return "", false
 	}
-	return e.value, true
+	return e.value.(string), true
+}
+
+func Push(key string, value string) int {
+	mu := lockForKey(key)
+	mu.Lock()
+	defer mu.Unlock()
+
+	v, ok := data.LoadAndDelete(key)
+	if ok {
+		l := v.(entry).value.([]string)
+		al := append(l, value)
+		data.Store(key, entry{value: al})
+		return len(al)
+	}
+	nl := []string{value}
+	data.Store(key, entry{value: nl})
+	return len(nl)
 }

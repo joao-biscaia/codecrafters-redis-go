@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	ECHO = "ECHO"
-	PING = "PING"
-	SET  = "SET"
-	GET  = "GET"
+	ECHO  = "ECHO"
+	PING  = "PING"
+	SET   = "SET"
+	GET   = "GET"
+	RPUSH = "RPUSH"
 )
 
 type commandFunc map[string]func(args []string) (string, byte, error)
@@ -25,10 +26,11 @@ type ExecuteCommand struct {
 
 func (e *ExecuteCommand) Run() (string, byte) {
 	commands := commandFunc{
-		ECHO: e.runEcho,
-		PING: e.runPing,
-		SET:  e.runSet,
-		GET:  e.runGet,
+		ECHO:  e.runEcho,
+		PING:  e.runPing,
+		SET:   e.runSet,
+		GET:   e.runGet,
+		RPUSH: e.runRPUSH,
 	}
 	if len(e.Args) < 1 {
 		return "", constants.SimpleString
@@ -82,4 +84,14 @@ func (e *ExecuteCommand) runGet(args []string) (string, byte, error) {
 		return "", constants.NullBulkString, nil
 	}
 	return value, constants.BulkString, nil
+}
+
+func (e *ExecuteCommand) runRPUSH(args []string) (string, byte, error) {
+	if len(args) < 2 {
+		return "", ' ', errors.New("invalid RPUSH command")
+	}
+	key := args[0]
+	value := args[1]
+	s := storage.Push(key, value)
+	return strconv.Itoa(s), constants.Integer, nil
 }
