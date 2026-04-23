@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"log"
 	"sync"
 	"time"
 
@@ -21,6 +22,7 @@ func lockForKey(key string) *sync.Mutex {
 }
 
 func Store(key string, value any) {
+	log.Printf("storing key=%q value=%q", key, value)
 	data.Store(key, entry{value: value})
 }
 

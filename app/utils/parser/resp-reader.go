@@ -3,6 +3,7 @@ package parser
 import (
 	"bufio"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/utils/errorsUtil"
@@ -34,19 +35,13 @@ func ParseCommand(input []byte) (parsedCommand []string, e error) {
 		return nil, nil
 	}
 
-	byteSize, err := reader.ReadByte()
+	byteSize, err := readLine(reader)
 	if err != nil {
 		return nil, errorsUtil.Wrap(err, "%v", "read command size")
 	}
-	arraySize := int(byteSize - '0')
+	arraySize := byteSize
 
 	commandArray := make([]string, arraySize)
-	// \r\n after array size
-	_, err = reader.ReadByte()
-	_, err = reader.ReadByte()
-	if err != nil {
-		return nil, errorsUtil.Wrap(err, "%v", "read CRLF token")
-	}
 	var builder strings.Builder
 
 	for i := range arraySize {
@@ -55,12 +50,8 @@ func ParseCommand(input []byte) (parsedCommand []string, e error) {
 			log.Printf("arg %v isn't bulk string; %d", input, len(input))
 			return nil, errorsUtil.New("arg %b isn't bulk string; %v", bs, commandArray)
 		}
-		byteSize, _ := reader.ReadByte()
-		bulkSize := int(byteSize - '0')
+		bulkSize, _ := readLine(reader)
 
-		// \r\n after bulksize
-		_, _ = reader.ReadByte()
-		_, _ = reader.ReadByte()
 		for _ = range bulkSize {
 			char, _ := reader.ReadByte()
 			builder.WriteByte(char)
@@ -75,4 +66,13 @@ func ParseCommand(input []byte) (parsedCommand []string, e error) {
 	}
 
 	return commandArray, nil
+}
+
+func readLine(reader *bufio.Reader) (int, error) {
+	line, err := reader.ReadString('\n') // lê "10\r\n"
+	if err != nil {
+		return 0, err
+	}
+	trimmed := strings.TrimSpace(line) // "10"
+	return strconv.Atoi(trimmed)
 }
