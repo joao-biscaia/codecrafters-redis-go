@@ -47,7 +47,7 @@ func Get(key string) (string, bool) {
 	return e.value.(string), true
 }
 
-func Push(key string, value string) int {
+func Push(key string, args ...string) int {
 	mu := lockForKey(key)
 	mu.Lock()
 	defer mu.Unlock()
@@ -55,11 +55,12 @@ func Push(key string, value string) int {
 	v, ok := data.LoadAndDelete(key)
 	if ok {
 		l := v.(entry).value.([]string)
-		al := append(l, value)
+		al := append(l, args...)
 		data.Store(key, entry{value: al})
 		return len(al)
 	}
-	nl := []string{value}
+	nl := make([]string, len(args))
+	copy(nl, args)
 	data.Store(key, entry{value: nl})
 	return len(nl)
 }

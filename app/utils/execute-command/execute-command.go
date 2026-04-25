@@ -91,7 +91,7 @@ func (e *ExecuteCommand) runRPUSH(args []string) (string, byte, error) {
 		return "", ' ', errors.New("invalid RPUSH command")
 	}
 	key := args[0]
-	value := args[1]
-	s := storage.Push(key, value)
+	value := args[1:]
+	s := storage.Push(key, value...)
 	return strconv.Itoa(s), constants.Integer, nil
 }
