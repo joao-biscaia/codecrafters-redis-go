@@ -9,11 +9,11 @@ import (
 )
 
 type Serializer struct {
-	Output  string
+	Output  any
 	OutType byte
 }
 
-type encodeFunctions map[byte]func(nakedString string) ([]byte, error)
+type encodeFunctions map[byte]func(val any) ([]byte, error)
 
 func (s *Serializer) Encode() []byte {
 	encodeMap := encodeFunctions{
@@ -21,6 +21,7 @@ func (s *Serializer) Encode() []byte {
 		constants.BulkString:     encodeBulkString,
 		constants.NullBulkString: encodeNullBulkString,
 		constants.Integer:        encodeInteger,
+		constants.Array:          encodeArray,
 	}
 
 	encodeFunc, ok := encodeMap[s.OutType]
@@ -36,7 +37,31 @@ func (s *Serializer) Encode() []byte {
 	return nil
 }
 
-func encodeInteger(nakedString string) ([]byte, error) {
+func encodeArray(val any) ([]byte, error) {
+	outputArray := val.([]string)
+	var builder strings.Builder
+	builder.WriteByte(constants.Array)
+	size := len(outputArray)
+	sizeByte := []byte(strconv.Itoa(size))
+	builder.Write(sizeByte)
+	builder.WriteByte('\r')
+	builder.WriteByte('\n')
+	for _, v := range outputArray {
+		size := len(v)
+		sizeByte = []byte(strconv.Itoa(size))
+		builder.WriteByte('$')
+		builder.Write(sizeByte)
+		builder.WriteByte('\r')
+		builder.WriteByte('\n')
+		builder.Write([]byte(v))
+		builder.WriteByte('\r')
+		builder.WriteByte('\n')
+	}
+	return []byte(builder.String()), nil
+}
+
+func encodeInteger(output any) ([]byte, error) {
+	nakedString := output.(string)
 	var builder strings.Builder
 	builder.WriteByte(constants.Integer)
 	for _, v := range nakedString {
@@ -47,7 +72,7 @@ func encodeInteger(nakedString string) ([]byte, error) {
 	return []byte(builder.String()), nil
 }
 
-func encodeNullBulkString(nakedString string) ([]byte, error) {
+func encodeNullBulkString(output any) ([]byte, error) {
 	var builder strings.Builder
 	builder.WriteByte('$')
 	builder.WriteByte('-')
@@ -57,7 +82,8 @@ func encodeNullBulkString(nakedString string) ([]byte, error) {
 	return []byte(builder.String()), nil
 }
 
-func encodeSimpleString(nakedString string) ([]byte, error) {
+func encodeSimpleString(output any) ([]byte, error) {
+	nakedString := output.(string)
 	var builder strings.Builder
 	builder.WriteByte(constants.SimpleString)
 	builder.Write([]byte(nakedString))
@@ -66,7 +92,8 @@ func encodeSimpleString(nakedString string) ([]byte, error) {
 	return []byte(builder.String()), nil
 }
 
-func encodeBulkString(nakedString string) ([]byte, error) {
+func encodeBulkString(output any) ([]byte, error) {
+	nakedString := output.(string)
 	outSize := len(nakedString)
 	var builder strings.Builder
 	builder.WriteByte(constants.BulkString)

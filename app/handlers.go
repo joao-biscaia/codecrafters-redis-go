@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 
+	constants "github.com/codecrafters-io/redis-starter-go/app/utils/consts"
 	"github.com/codecrafters-io/redis-starter-go/app/utils/errorsUtil"
 	executeCommand "github.com/codecrafters-io/redis-starter-go/app/utils/execute-command"
 	"github.com/codecrafters-io/redis-starter-go/app/utils/parser"
@@ -38,6 +39,14 @@ func handleConn(c net.Conn) {
 			Args: args,
 		}
 		out, outType := ex.Run()
+
+		switch outType {
+		case constants.SimpleString, constants.BulkString:
+			out = out.(string)
+			break
+		case constants.Array:
+			out = out.([]string)
+		}
 
 		s := &serializer.Serializer{
 			Output:  out,

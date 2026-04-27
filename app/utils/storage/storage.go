@@ -34,17 +34,19 @@ func StoreWithExpiry(key string, value string, durationMeasure string, duration 
 	data.Store(key, e)
 }
 
-func Get(key string) (string, bool) {
+func Get[T any](key string) (T, bool) {
+	var zero T
 	v, ok := data.Load(key)
 	if !ok {
-		return "", false
+		return zero, false
 	}
 	e := v.(entry)
 	if !e.expiresAt.IsZero() && time.Now().After(e.expiresAt) {
 		data.Delete(key)
-		return "", false
+		return zero, false
 	}
-	return e.value.(string), true
+	val, ok := e.value.(T)
+	return val, ok
 }
 
 func Push(key string, args ...string) int {
