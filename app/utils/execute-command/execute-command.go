@@ -99,30 +99,40 @@ func (e *ExecuteCommand) runRPUSH(args []string) (any, byte, error) {
 }
 
 func (e *ExecuteCommand) runLRANGE(args []string) (any, byte, error) {
+	//todo: refactor this logic to create new package for comparison
 	if len(args) < 3 {
-		return make([]string, 0), ' ', errors.New("invalid LRANGE command")
+		return make([]string, 0), constants.Array, errors.New("invalid LRANGE command")
 	}
 	key := args[0]
-	s, err := strconv.Atoi(args[1])
+	start, err := strconv.Atoi(args[1])
 	if err != nil {
-		return make([]string, 0), ' ', errors.New("invalid LRANGE command: start index")
+		return make([]string, 0), constants.Array, errors.New("invalid LRANGE command: start index")
 	}
 	end, err := strconv.Atoi(args[2])
 	if err != nil {
-		return make([]string, 0), ' ', errors.New("invalid LRANGE command: end index")
+		return make([]string, 0), constants.Array, errors.New("invalid LRANGE command: end index")
 	}
+
 	values, ok := storage.Get[[]string](key)
+
+	if start < 0 {
+		start = max(len(values)+start, 0)
+	}
+	if end < 0 {
+		end = max(len(values)+end, 0)
+	}
+
 	if !ok {
 		return make([]string, 0), constants.Array, nil
 	}
-	if s >= len(values) {
+	if start >= len(values) || start < 0 {
 		return make([]string, 0), constants.Array, nil
 	}
-	if end >= len(values) {
-		return values[s:], constants.Array, nil
+	if end >= len(values) || end < 0 {
+		return values[start:], constants.Array, nil
 	}
-	if s > end {
+	if start > end {
 		return make([]string, 0), constants.Array, nil
 	}
-	return values[s : end+1], constants.Array, nil
+	return values[start : end+1], constants.Array, nil
 }
