@@ -19,6 +19,7 @@ var (
 	RPUSH  = "RPUSH"
 	LRANGE = "LRANGE"
 	LPUSH  = "LPUSH"
+	LLEN   = "LLEN"
 )
 
 type commandFunc map[string]func(args []string) (any, byte, error)
@@ -36,6 +37,7 @@ func (e *ExecuteCommand) Run() (any, byte) {
 		RPUSH:  e.runRPUSH,
 		LRANGE: e.runLRANGE,
 		LPUSH:  e.runLPUSH,
+		LLEN:   e.runLLEN,
 	}
 	if len(e.Args) < 1 {
 		return "", constants.SimpleString
@@ -142,7 +144,7 @@ func (e *ExecuteCommand) runLRANGE(args []string) (any, byte, error) {
 
 func (e *ExecuteCommand) runLPUSH(args []string) (any, byte, error) {
 	if len(args) < 2 {
-		return 0, constants.Integer, errors.New("invalid LPUSH command")
+		return "0", constants.Integer, errors.New("invalid LPUSH command")
 	}
 	key := args[0]
 	values := make([]string, len(args[1:]))
@@ -152,4 +154,16 @@ func (e *ExecuteCommand) runLPUSH(args []string) (any, byte, error) {
 	s := storage.Push[string](key, false, values...)
 	return strconv.Itoa(s), constants.Integer, nil
 
+}
+
+func (e *ExecuteCommand) runLLEN(args []string) (any, byte, error) {
+	if len(args) != 1 {
+		return 0, constants.Integer, errors.New("invalid LLEN command")
+	}
+	key := args[0]
+	values, ok := storage.Get[[]string](key)
+	if ok {
+		return strconv.Itoa(len(values)), constants.Integer, nil
+	}
+	return strconv.Itoa(0), constants.Integer, nil
 }
