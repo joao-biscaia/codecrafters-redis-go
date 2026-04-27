@@ -49,20 +49,28 @@ func Get[T any](key string) (T, bool) {
 	return val, ok
 }
 
-func Push(key string, args ...string) int {
+func Push[T any](key string, r bool, args ...T) int {
 	mu := lockForKey(key)
 	mu.Lock()
 	defer mu.Unlock()
 
 	v, ok := data.LoadAndDelete(key)
 	if ok {
-		l := v.(entry).value.([]string)
-		al := append(l, args...)
+		// in case values from args are different from l
+		l, ok2 := v.(entry).value.([]T)
+		if !ok2 {
+			return -1
+		}
+		var al []T
+		if r {
+			al = append(l, args...)
+		} else {
+			al = append(args, l...)
+		}
 		data.Store(key, entry{value: al})
 		return len(al)
 	}
-	nl := make([]string, len(args))
-	copy(nl, args)
+	nl := append([]T{}, args...)
 	data.Store(key, entry{value: nl})
 	return len(nl)
 }

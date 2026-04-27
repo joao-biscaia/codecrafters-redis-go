@@ -3,6 +3,7 @@ package executeCommand
 import (
 	"errors"
 	"log"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -17,6 +18,7 @@ var (
 	GET    = "GET"
 	RPUSH  = "RPUSH"
 	LRANGE = "LRANGE"
+	LPUSH  = "LPUSH"
 )
 
 type commandFunc map[string]func(args []string) (any, byte, error)
@@ -33,6 +35,7 @@ func (e *ExecuteCommand) Run() (any, byte) {
 		GET:    e.runGet,
 		RPUSH:  e.runRPUSH,
 		LRANGE: e.runLRANGE,
+		LPUSH:  e.runLPUSH,
 	}
 	if len(e.Args) < 1 {
 		return "", constants.SimpleString
@@ -94,7 +97,7 @@ func (e *ExecuteCommand) runRPUSH(args []string) (any, byte, error) {
 	}
 	key := args[0]
 	value := args[1:]
-	s := storage.Push(key, value...)
+	s := storage.Push[string](key, true, value...)
 	return strconv.Itoa(s), constants.Integer, nil
 }
 
@@ -125,14 +128,28 @@ func (e *ExecuteCommand) runLRANGE(args []string) (any, byte, error) {
 	if !ok {
 		return make([]string, 0), constants.Array, nil
 	}
-	if start >= len(values) || start < 0 {
+	if start >= len(values) {
 		return make([]string, 0), constants.Array, nil
 	}
-	if end >= len(values) || end < 0 {
+	if end >= len(values) {
 		return values[start:], constants.Array, nil
 	}
 	if start > end {
 		return make([]string, 0), constants.Array, nil
 	}
 	return values[start : end+1], constants.Array, nil
+}
+
+func (e *ExecuteCommand) runLPUSH(args []string) (any, byte, error) {
+	if len(args) < 2 {
+		return 0, constants.Integer, errors.New("invalid LPUSH command")
+	}
+	key := args[0]
+	values := make([]string, len(args[1:]))
+	copy(values, args[1:])
+	slices.Reverse(values)
+
+	s := storage.Push[string](key, false, values...)
+	return strconv.Itoa(s), constants.Integer, nil
+
 }
