@@ -20,6 +20,7 @@ var (
 	LRANGE = "LRANGE"
 	LPUSH  = "LPUSH"
 	LLEN   = "LLEN"
+	LPOP   = "LPOP"
 )
 
 type commandFunc map[string]func(args []string) (any, byte, error)
@@ -38,6 +39,7 @@ func (e *ExecuteCommand) Run() (any, byte) {
 		LRANGE: e.runLRANGE,
 		LPUSH:  e.runLPUSH,
 		LLEN:   e.runLLEN,
+		LPOP:   e.runLPOP,
 	}
 	if len(e.Args) < 1 {
 		return "", constants.SimpleString
@@ -166,4 +168,13 @@ func (e *ExecuteCommand) runLLEN(args []string) (any, byte, error) {
 		return strconv.Itoa(len(values)), constants.Integer, nil
 	}
 	return strconv.Itoa(0), constants.Integer, nil
+}
+
+func (e *ExecuteCommand) runLPOP(args []string) (any, byte, error) {
+	key := args[0]
+	val, ok := storage.Pop[string](key)
+	if ok {
+		return val, constants.BulkString, nil
+	}
+	return nil, constants.NullBulkString, nil
 }

@@ -74,3 +74,24 @@ func Push[T any](key string, r bool, args ...T) int {
 	data.Store(key, entry{value: nl})
 	return len(nl)
 }
+
+func Pop[T any](key string) (T, bool) {
+	mu := lockForKey(key)
+	mu.Lock()
+	defer mu.Unlock()
+	var zero T
+
+	v, ok := data.LoadAndDelete(key)
+	if ok {
+		l, ok := v.(entry).value.([]T)
+		if !ok {
+			return zero, false
+		}
+		if len(l) < 1 {
+			return zero, false
+		}
+		data.Store(key, entry{value: l[1:]})
+		return l[0], true
+	}
+	return zero, false
+}
