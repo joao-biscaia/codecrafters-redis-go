@@ -172,9 +172,30 @@ func (e *ExecuteCommand) runLLEN(args []string) (any, byte, error) {
 
 func (e *ExecuteCommand) runLPOP(args []string) (any, byte, error) {
 	key := args[0]
+	n := 1
+	var err error
+	if len(args) > 1 {
+		n, err = strconv.Atoi(args[1])
+		if err != nil {
+			return nil, constants.NullBulkString, errors.New("LPOP: invalid command")
+		}
+		var values []string
+		for _ = range n {
+			val, ok := storage.Pop[string](key)
+			if ok {
+				values = append(values, val)
+			}
+		}
+		if values != nil {
+			return values, constants.Array, nil
+		}
+		return make([]string, 0), constants.Array, nil
+	}
+
 	val, ok := storage.Pop[string](key)
 	if ok {
 		return val, constants.BulkString, nil
 	}
 	return nil, constants.NullBulkString, nil
+
 }
